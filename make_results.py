@@ -40,17 +40,50 @@ from predict import myOwnPredict, preprocess_image
 import cv2
 import numpy as np
 
-IMAGE_PATH = "./test_drone.jpg"
+cap = cv2.VideoCapture("./Input/video.mp4")
 
-orig = cv2.imread(IMAGE_PATH)
-image, image_data = preprocess_image(orig, (416, 416))
 
 class_names = [c.strip() for c in open("./class_names.txt").readlines()]
 
-output_0, output_1 = tf_sess.run([tf_output_0,tf_output_1], feed_dict={
-        tf_input: image_data[None, ...]})
+# set start time to current time
+start_time = time.time()
+# displays the frame rate every 2 second
+display_time = 2
+# Set primarry FPS to 0
+fps = 0
 
-output_tensors = [output_0, output_1]
-print(output_0.shape)
-print(output_1.shape)
-myOwnPredict(image=image, output_tensors=output_tensors, class_names=class_names,confidence=0.5, iou_threshold=0.4)
+font = cv2.FONT_HERSHEY_SIMPLEX
+
+# used to record the time when we processed last frame 
+prev_frame_time = 0
+  
+# used to record the time at which we processed current frame 
+new_frame_time = 0
+
+while True:
+    ret, frame = cap.read()
+    if ret == True:
+        image, image_data = preprocess_image(frame, (416, 416))
+
+        output_0, output_1 = tf_sess.run([tf_output_0,tf_output_1], feed_dict={
+                tf_input: image_data[None, ...]})
+
+        output_tensors = [output_0, output_1]
+
+        output_image = myOwnPredict(image=image, output_tensors=output_tensors, \
+                                    class_names=class_names,confidence=0.5, iou_threshold=0.4)
+        # calculate FPS
+        new_frame_time = time.time()
+        fps = 1/(new_frame_time-prev_frame_time) 
+        prev_frame_time = new_frame_time
+
+        fps = int(fps)
+        fps = str(fps)
+
+        cv2.putText(output_image, fps, (7, 70), font, 3, (100, 255, 0), 3, cv2.LINE_AA)
+        cv2.imshow('Drone Detection', cv2.resize(output_image, (1200, 800)))
+
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            cap.release()
+            cv2.destroyAllWindows()
+            break

@@ -144,4 +144,4 @@ def draw_boxes(image, outputs, class_names):
         text = '{0} {1:.2f}'.format(class_names[int(cls)], score)
         image = draw_label(image, text, (0,0,255), (x1, y1))
 
-    cv2.imwrite("out.png", image)
+    return image
